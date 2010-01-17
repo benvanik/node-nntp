@@ -1,0 +1,43 @@
+{
+    "name": "node-nntp",
+    "homepage": "http://github.com/benvanik/node-nntp",
+    "version": "0.0.1",
+    "description": "An NNTP client library with common Usenet extensions.",
+    "keywords": [
+        "nntp",
+        "usenet",
+        "networking"
+    ],
+    "maintainers": [
+        {
+            "name": "Ben Vanik",
+            "email": "ben.vanik@gmail.com",
+            "web": "http://noxa.org"
+        }
+    ],
+    "contributors": [
+    ],
+    "bugs": {
+        "web": "http://github.com/benvanik/node-nntp/issues"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "http://www.opensource.org/licenses/mit-license.php"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "git",
+            "url": "git://github.com/benvanik/node-nntp.git"
+        }
+    ],
+    "dependencies": {
+        "nodejs": "1.25"
+    },
+    "implements": [ "CommonJS/Modules/1.0" ],
+    "directories": {
+        "lib": "lib",
+        "doc": "doc"
+    }
+}

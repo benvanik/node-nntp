@@ -1,0 +1,504 @@
+1234567890123456789012345678901234567890123456789012345678901234567890
+
+yEncode - Experiences - 27.Feb 2002
+-----------------------------------
+
+This is the actual status of the yEncoding after several weeks
+of use on Usenet and a lot of implementations.
+I want to thank everybody for their efforts and enthusiasm.
+
+
+Please keep in mind that the proposals for yEnc-V2 are
+not implemented into any tool - and it is possible 
+that there will never be a yEnc-V2 !
+
+Implementors who did already write an encoder/decoder want to 
+implement the "total=" parameter and check their policy for
+filenames. This is not mandantory, but recommended.
+
+After all the amount of "forgotten" things is nearly null.
+
+
+Forte-Agent
+-----------
+
+Some subject line formats are preventing Forte (free) Agent from 
+joining yEncoded multiparts automatically.
+Forte will support yEnc soon - but meanwhile here the fix:
+
+I was informed that this switch must be changed in the AGENT.INI file:
+
+old:  RequireFilenameWithTag=1
+new:  RequireFilenameWithTag=0
+
+
+Forgotten things:  total=#
+--------------------------
+
+yEnc draft 1 does not specify the total number of splitted parts 
+within the =ybegin line. It might be possible to get that value from 
+the subject-header (which is not possible for an external decoder 
+when the headers have been already removed).
+It might be also possible to calculate that value from the size of 
+the first part (=ypart: begin= and end= info). But this is also not 
+a very nice method.
+
+Is is now recommended to add a NEW paramater to the =ybegin line for 
+multiparts: The "total=#" parameter which indicates the total number 
+of parts. Example:
+=ybegin part=1 total=15 line=128 size=500000 name=mybinary.dat
+
+Writers of new encoders are honestly asked to add this parameter for 
+multiparts. 
+However a decoder cannot rely on its presence for yEnc-V1!
+
+
+Forgotten things:  filename-parameter
+-------------------------------------
+
+yEnc does not specify the content of the "name=" parameter.
+And there are a lot of problems if non-ASCII or unicode is used.
+
+This is discussed later. But here the important topic:
+
+If the "name=" parameter contains leading or trailing spaces then a 
+decoder should CUT THEM. An encoder should not use leading or trailing 
+spaces in that parameter.
+
+If the "name=" parameter is included into quotes (name="filename.jpg") 
+then the quotes should be removed by the decoder.
+
+Of course most newsreader programmers handle this already.
+
+
+Critical characters
+-------------------
+
+The practical experience shows that the TAB character can be omitted from 
+the list of critical characters in Usenet.
+
+For eMail, stored files (newsreader-behavior) and on other cases it might 
+be necessary to treat SPACEs and TABs as 'critical' characters if they 
+appear at the start or in the end of a line.
+A careful writer of encoders should encode these two characters whenever 
+they appear in the first or last postion of a line.
+
+Generally a decoder must handle ALL escaped characters. It cannot make a 
+plausibility check on these characters - because later versions of yEnc 
+might add more critical charcters. 
+
+It happens that a programmer is writing an encoder and sends the encoded 
+file _directly_ to an TCP-outputput stream. In such cases he _must_ take 
+care of the DOT in the first column!
+A dot in the first column must be _doubled_ in any cases. Usually this is 
+done by the transport-layer. But if not, then the programmer can also 
+treat the DOT as a critical character if it appears in the first column 
+of a line. It must be doubled anyway - so there is no bandwidth loss.
+The same thing happens on the DECODER side whenever the data is directly 
+read from a TCP-input-stream. In this case a DOT in the first column is 
+always followed by a second dot in the second dot. The first dot is then 
+skipped by the decoder.
+
+
+Line Length
+-----------
+
+The 'default' linelength (line=128) did not cause any problems. So it 
+might be used usually.
+
+Special applications might use also line=64. This permits to view a 
+yEncoded message on an 80 column display. 
+It is not recommend to use a smaller value.
+
+The recommended maximum line-value is 254. Some Pascal implementations 
+could have problems with longer line.
+
+The maximum permitted line-value is 997 for NNTP/SMTP applications. 
+With an escaped character at the end of the line and the trailing 
+CRLF the maximum permitted line-length for these protocols is then 
+reached.
+
+Decoders must check the the line-value. They might deny decoding if 
+they cannot handle a line-value - and they should be prepared for a 
+value of 456789012343 !
+
+
+Subject Line
+------------
+
+Most implementations of a yEnc encoder (posting through a newsreader 
+or autoposter) did not respect the subject conventions of the yEnc 
+draft. This is not too bad. But some posting programs are creating 
+confusions with the neticens - and some news-reader 
+(or binary downloaders).
+
+It is acceptable to move the part-indicator for a multipart message 
+directly behind the filename:
+
+Old: [c1] - "filename" yEnc (#/#) [size] [c2]
+New: [c1] - "filename" (#/#) yEnc [size] [c2]
+
+It is _strongly_ recommended to add the keyword yEnc to all yEncoded 
+posts. Tools which dont add that keyword rely on the neticens to do 
+this - and they sometimes fail.
+
+Some programs are permitting the user to add a second (#/#) pair of 
+values in round brackets seperated by a slash. This is really sick.
+Please prevent your users from adding such things even as _comments_!
+For single- and for multiparts !
+
+Some programs are using SQUARE brackets [#/#] as a part indicator 
+instead of round brackets. This is really confusing to the users !
+Please dont do this for yEncoded multipart messages !
+
+Some programs are using SQUARE brackets [#/#] as an indicator for 
+the amount of posted files (in one run). This is _fine_.
+But please keep in mind that such counters must be used _only_ in 
+front of the filename - in the [c1] section.
+
+Filenames are getting longer and longer. There are a lot of spaces 
+in them today. PLEASE use quotes for the filename in the subject 
+line. This permits users to see wha is coming. And there is no 
+really good reasons why users should use quotes either in filenames 
+- nor in comment lines.
+
+
+Former "nice ideas"
+-------------------
+
+Adding the CRC32 of a posted binary into the subject line is a bad idea. 
+
+Setting the "Lines:" header to a faked value to reach similarity to 
+UUencoded posts is also a bad idea. The "Lines" value from the 
+XOVERview is usually recalculated by the news-server which receives 
+the message by POST.
+
+Adding additional database information seems to be no topic (yet).
+So there is no further development of the  =ydata  lines.
+If a decoder is finding  =y*** lines (outside the =ybegin/=yend block) 
+then it should simply skip them.
+
+
+
+Size of splitted messages
+-------------------------
+There has been confusion out there among the users of yEnc posting 
+programs about the real size of a message and the distribution 
+quality (which is bad for ultralong posts).
+
+UUencode is usually encoding 45 source-bytes into on line - which 
+results in 60 bytes + CRLF for the upstream.
+
+yEnc is encoding typically 128 source bytes into one line - which 
+results in 133 bytes (by average). 
+
+If a message was formely posted with 10.000 lines per section (UU) 
+(620 kBytes) then it is now posted with ~ 4.500 lines to have the 
+same message size on Usenet!
+
+The other 'usual' values are:
+
+  UUe  -  yEnc         msg-size
+15000  -  6900  lines    930 kB   
+10000  -  4500  lines    620 kB
+ 7500  -  3400  lines    465 kB
+ 5000  -  2300  lines    279 kB
+ 3000  -  1300  lines    186 kB
+
+Writers of AutoPosters should offer proper information about the 
+real size they are posting.
+
+This confusion will end as soon as the "lines" value gets less 
+importance. It should be generally repalced by the message-size.
+
+ 
+
+Filenames: length and character-sets
+------------------------------------
+
+It is possible that filename gets very long (up to 255 chars). 
+This is not too bad - as Usenet should be able to transport 
+lines up to 1000 bytes - and the filename is not critical.
+
+Adding an own line (=yname=<filename>) is no real option for me, 
+because this would again limit thew size to 248 characters.
+
+Decoder programmers should take CARE about their input buffer 
+whenever they read the =ybegin line !
+
+
+The concern was raised that filenames could also contain 
+NON-ASCII characters (ISO*, Unicode, ...)
+This also happens on the subject line then.
+
+I have no real solution to this problem.
+
+
+Proposals for extensions of yEnc
+================================
+
+A lot of people have _great_ ideas for extending yEnc.
+And I want to thank all of them for their enthusiasm.
+
+We had to postpone all these wishes to yEnc-V2.
+Here an (incomplete) list of them:
+
+Version Number
+--------------
+If we release completely new and different version of yEnc, 
+then existing decoder will have problems with them. So we 
+need a new keyword for detection of yEncoded messages.
+
+The proposal would be:   =ybegin2
+
+If you are writing a yEnc-decoder then please scan the source 
+data for:   "=ybegin " - with a SPACE behind yEnc.
+
+If you are scanning for "=ybegin" then you should check if the 
+following character is a space - or a digit (the version number).
+
+A better proposal would be:   =y2begin
+
+
+PAR - files
+-----------
+These parity volumes are usually posted together with a bunch of 
+binaries for repairing corrupt messages - and restauration of 
+missing parts from the redundancy/difference information in 
+the PAR files.
+Adding them to yEnc is actually out of sight.
+The complexity would grow enormously.
+And most professionals believe this should be kept on user-level.
+
+I personally see no reaosn why a newsreader should not create 
+them automatically - and post them together with the source files 
+in one run.
+
+Compression
+-----------
+yEncoded files can grow large if exreme data is encoded. If only 
+"critical" characters are included, then the encoded file might 
+have twice the size of the original.
+Several approaches have been proposed to solve this problem:
+
+* Using a variable offset (instead of the '42').
+* Using a variable (or different) escape-offset (instead of the '64).
+* Using a different or variable escape character (instead of '=')
+
+All these options could be used in yEnc-V2. Example:
+
+=ybegin2 offset=42 escape=61 escoff=64 ... line=128 
+
+It might be possible to avoid extreme case - but I'm not sure about 
+their importance. Flexibility with the escape-character would in any 
+case cause problems with the =yend line.
+
+
+Some people are proposing RLE compression (run length encoding) to 
+avoid long sequences of critical characters (which would also blowup 
+the encoded result). As this would ignore double or triple bytes of 
+critical characters as well there seems to be no general solution 
+but to use a "general compression".
+
+
+Some people are favoring a "good standard compression" as BZIP.
+It is not yet clear which one to use - because it must be public domain 
+(also for commcercial use), fast and easy to implement into various 
+platforms.
+The general approach would be a "compression-parameter". Example:
+
+=ybegin2 comp=zip
+
+An encoder would use ZIP before the binary is encoded.
+A decoder would use ZIP after the binary is decoded.
+
+A decoder which does not understand:  "comp=guzip" could still save 
+the file wit the extension "*.guzip" and try to call an external 
+application which handles the compression.
+
+
+Multiple binaries in one message
+--------------------------------
+
+If multiple binaries are stored within one file then the subject 
+line cannot contain all of them. However it makes sense to use at 
+least the FIRST filename in the subject name - rather than sending 
+nothing.
+If (for example) an HTML-file is encoded togeher with all its included 
+pictures, then the name of the HTML-file file should be displayed in 
+the subject line.
+
+Multiple binaries in splitted messages
+--------------------------------------
+
+Some people are posting 20 pictures in a 10 or 40 part multipart message. 
+Better said: some news-software permits to post such things.
+
+Beside the fact that this method to hide filesnames from the readerhsip 
+(and is so mainly used by spammers or trolls or newbies) your news-tool 
+should _reject_ the attempt to post this way at all.
+Instead smaller files should be placed into one message - and larger 
+files should be split.
+
+Please keep in mind:
+Missing a picture from a series is not too bad.
+But missing one part of a multipart which is required to decode it at 
+all before you can see what you get is annoying.
+
+
+Constant message size
+---------------------
+
+Some implementors of yEncoders wanted to have a constant message size 
+for multiparts. They wanted to stop encoding when a particular size of 
+the message is reached. But they have problems to determine the amount 
+of source-bytes as they cannot predict the result-size after encoding.
+There was the idea to move the "end=" parameter to the "=yend" line 
+- instead of having it i the =ypart line. (I dont like this idea 
+- because then all decoders would have to seek for =yend first).
+
+Well - the same result could be reached by encoding to a large 
+memory buffer - then writing the =ypart line - and then writing the buffer.
+(This would also avoid reading a file twice).
+
+
+Generally it is _highly_ recommended to encode multiparts with a 
+fixed amount of SOURCE bytes. The deviation of the yEnc-overhead 
+is not as drastical as it seems.
+
+However the decoder should be prepared to receive also yEncoded 
+multiparts with FLOATING sizes. The real size of a part ca be 
+determined from the  =ypart  begin=#  end=#
+And the last part would still have  end=# identical to size=#
+
+
+Constant amount of lines
+------------------------
+
+Some implementors of yEncoders wanted to have a constant amount 
+of lines. The floating number of lines could really disturb users.
+
+There are two solutions:
+Either these implementors do also (as before) stop encoding if a 
+secific amount of lines is used. The same procedure as "constant 
+message size" applies.
+
+Or we would let float the LINES size - the length of a line.
+Then line=128 would specify 128 SOURCE bytes instead of 128 ENCODED 
+bytes. Of course this would require a fundamental change in the 
+encoding - but could still be used in yEnc-V2.
+
+I dont beleive that this topic is too important, but it should be 
+also mentioned here to prevent the same questions.
+
+
+Seperate parameter list - or combined parameter list
+----------------------------------------------------
+
+Some people suggest to forget the =ypart line and then instead place 
+all into the =begin line.
+Other people suggest to have seperate lines for every parameters.
+
+<Sigh> - no comment, they are all right.
+
+
+MD5-checksum instead of CRC checksum
+------------------------------------
+
+Some people propose to use the MD5 calculation for protecting 
+yEncoded message from corruption instead of CRC32.
+
+CRC32 was selected originally because this value also appears in 
+SFV/CSV files and is used (sometimes shown) by compressors.
+
+I am not sure if CRC32 is too weak for the purpose we have.
+
+
+
+More practical experience - what can happen if....
+==================================================
+
+
+Calculation of the CRC32 on 64 bit computers
+--------------------------------------------
+
+Implementors for 64 bit CPUs (and 16 bit cpus) should be aware 
+of the fact that the source code examples are written for a 32 
+bit machine. The calculation of the CRC32 is _sensible_ to the 
+size of the variables.
+Please find appropriate source code for your platform - or use 
+the 'usual' #define / typedef methods to guarantee correct CRC 
+calculation.
+
+
+Wrong CRC32 detection
+---------------------
+
+Nothing is so easy that it cannot be implemented wrongly.
+(Mc Murphy).
+
+Implementors seem to have bigger problems to implement CRC32 for 
+encoders or decoders. Someone told me "there are more intact 
+mesagges with a wrong CRC32 on Usenet than corrupt messages".
+
+The result is/was even the wish to switch OFF the crc32 detection 
+to permit the users to store files which would be else rejected 
+as corrupt.
+
+I believe that this is _generally_ a bad idea.
+Implementors should _carefully_ test their encoders/decoders. 
+There is ENOUGH material in  alt.binaries.test.yenc  every day.
+
+Tools which create false CRC32 information must be removed from 
+the net as fast as possible !
+An dif you cannot find the bug the it is better to send without 
+the CRC32 (which is not mandantory) rather than with a false one.
+
+It might be possible to offer the user an option to store a 
+binary _even_ if it would be corrupt. And still then the reason 
+for the corruption should be added to the filename!
+It might be possible to see a picture or listen to a voice file 
+even if it corrupt - but it should not be stored as if nothing 
+happened.
+
+Recommendation:
+
+If a CRC is wrong then store the file with this name:
+     picture(crc-12345678).jpg
+
+If a size is wrong the store the file with this name:
+     movie(size-123456789).avi
+
+
+Single parts posted in the multipart format
+-------------------------------------------
+
+Some implementors want to add always the  (1/1)  to a single 
+part binary. All I say here is:  Why not :-)
+
+Some implementors want to send also single part binaries in the 
+full multipart format:
+
+=ybegin part=1 total=1 line=128 size=123456 name=binary.dat
+=ypart begin=1 end=123456
+....
+=yend
+
+I personally believe this is wierd - but implementors of decoders 
+should be prepared for this case.
+
+
+Last multipart is empty
+-----------------------
+
+Someone created a encoder which created empty last parts.
+My only comment is: "Shit happens".
+
+Be prepared to receive such things if you write a decoder.
+
+
+[EOF]
+
+
+-- Last Changes:  =ybegin2 --> =y2begin
+

@@ -1,0 +1,388 @@
+// Created by Juergen Helbing in 2001 as a part of the MyNews project 
+
+// This is a source code example for the yDecoder - see also:  http://www.yenc.org
+// It is public domain - as well as the yEnc specification
+//
+// The progamming style is very "basic" and readable.
+//
+// The function is scanning the incoming file stream (fIn) for yEncoded blocks.
+// The stream must be supported by the newsreader - in case of multipart
+// the entire parts must be in the input stream. The newsreader should provide
+// the decoder with a textfile which contains all the parts. This source
+// can contain additional headers between the parts - they are simply skipped.
+
+// This example requires the parts in correct sequence (1-2-3-4-...-n)
+// Advanced decoders might be able to operate on mixed sequence - and even
+// missing parts or parts from different "fill" posts
+
+// print() and eprint() are logging displays from 'MyNews'
+// Crc32 - functions are available in the yEncoder example
+
+// ad_fgetscr() read data from the input stream into the buffer and removes CRLF.
+
+
+unsigned long hex_to_ulong(char * text)  // Because strtol() does not deliver 32 bit on my C-Compiler
+	{
+	unsigned long res;
+	unsigned char c;
+
+	if (text==NULL) return(-1);
+
+	res=0;
+loop:
+	c=*text; text++;
+	if ((c>='0')&(c<='9'))
+		{
+		res=(res<<4)+((long)(c-48) & 0x0F);
+		goto loop;
+		}
+	if ((c>='A')&(c<='F'))
+		{
+		res=(res<<4)+((long)(c-55) & 0x0F);
+		goto loop;
+		}
+	if ((c>='a')&(c<='f'))
+		{
+		res=(res<<4)+((long)(c-87) & 0x0F);
+		goto loop;
+		}
+	return(res);
+	}
+
+
+
+int yDecode(FILE * fOut, FILE * fIn, long y_line, long y_size,int y_part)
+	{
+	unsigned char srcbuf[4100];
+	unsigned char desbuf[4100];
+	unsigned char * srcp;
+	unsigned char * desp;
+	int deslen;
+	int srclen;
+	unsigned char c;
+	int id;
+	char * cp;
+	long decolen;
+	long y_begin;
+	long y_end;
+	long sumlen;
+	int partnr;
+	unsigned long crc32;
+	char name[260];
+	int esize;
+
+	if (aDsp) print("yDecoder started...\r\n");
+
+	sumlen=0; partnr=1;
+
+part_start:
+	CrcInit();  // Analyse only CRC per part
+	decolen=0;
+	deslen=0; desp=desbuf;
+
+	if (y_part)  // This is a multipart message !
+		{
+		cp=ad_fgetscr((char*) srcbuf,4097,fIn);  // fgets especially with ad_length
+		if (cp==NULL)
+			{
+			eprint("Unexpected eof in yEncoded file\r\n");
+			return(1);
+			}
+
+		if (aDsp) print("=ypart-line:  %s\r\n",srcbuf);
+
+		if (strncmp((char*) srcbuf,"=ypart ",7))
+			{
+			eprint("Missing =ypart line in yEncoded multipart message\r\n");
+			return(2);
+			}
+		cp=strstr((char*)srcbuf,"end=");
+		if (cp==NULL)
+			{
+			eprint("Missing end= in yEncoded multipart message\r\n");
+			return(2);
+			}
+		y_end=atol(cp+4);
+
+		cp=strstr((char*)srcbuf,"begin=");
+		if (cp==NULL)
+			{
+			eprint("Missing begin= in yEncoded multipart message\r\n");
+			return(2);
+			}
+		y_begin=atol(cp+6);
+
+		if (aDsp) print("part-begin: %ld\r\n",y_begin);
+		if (aDsp) print("part-end  : %ld\r\n",y_end);
+
+		}
+
+
+loop:
+
+	cp=ad_fgetscr((char*) srcbuf,4097,fIn);  // fgets especially with ad_length
+	if (cp==NULL)
+		{
+		eprint("Unexpected eof in yEncoded file\r\n");
+		return(1);
+		}
+	if (strncmp((char*) srcbuf,"=yend ",6)==0)
+		{
+		if (aDsp) print("Endline (%d bytes): %s\r\n",decolen,srcbuf);
+		goto end_of_file;
+		}
+	srclen=strlen((char*)srcbuf);
+	if (srclen<y_line)
+		{
+		if (aDsp) print("Last line.\r\n");
+		}
+	srcp=srcbuf;
+
+loop2:
+	c=*srcp; srcp++;
+	if (c==0)
+		{
+		goto loop;  // End of line reached
+		}
+	if (c == '=')  // The escape character comes in
+		{
+		c=*srcp; srcp++;
+		if (c==0) return(2); // Last char cannot be escape char !
+		c=(unsigned char)(c-64);
+		}
+	c=(unsigned char)(c-42);  // Subtract the secret number
+	*desp=c; desp++; deslen++;	decolen++;
+
+	CrcAdd(c);
+
+	if (deslen>=4096)
+		{
+		id=fwrite(desbuf,deslen,1,fOut);
+		if (id != 1)
+			{
+			eprint("Error in writing decoded file (code=%d)\r\n",errno);
+			return(3);
+			}
+		deslen=0; desp=desbuf;
+		}
+	goto loop2;
+
+end_of_file:
+
+
+	if (deslen>0)  // Empty the last buffer
+		{
+		id=fwrite(desbuf,deslen,1,fOut);
+		if (id != 1)
+			{
+			eprint("Error in writing decoded file (code=%d)\r\n",errno);
+			return(4);
+			}
+		}
+
+	cp=strstr((char*) srcbuf,"size=");  // Compare the decoded size to the =yend size
+	if (cp)
+		{
+		esize=atoi(cp+5);
+		if (esize != decolen)
+			{
+			sprintf(name,"%s(size=%ld)",attname,decolen);
+			strcpy(attname,name);
+			eprint("Corrupt yEnc binary - endsize mismatch (%s%s)\r\n",attname,attext);
+			return(0);
+			}
+		}
+
+
+	// Check the srcbuf for the CRC
+	if (y_part==0)
+		{
+		cp=strstr((char*)srcbuf,"crc32=");
+		if (cp)
+			{
+			crc32=hex_to_ulong((char*)(cp+6));
+			ad_rescrc=crc_val ^ 0xFFFFFFFFl;
+			if (aDsp) print("Included CRC: $%08lx - calculated CRC: $%08lx\r\n",crc32,ad_rescrc);
+			}
+		}
+	else
+		{
+		cp=strstr((char*)srcbuf,"pcrc32=");
+		if (cp)
+			{
+			crc32=hex_to_ulong((char*)(cp+7));
+			ad_rescrc=crc_val ^ 0xFFFFFFFFl;
+			if (aDsp) print("Included CRC: $%08lx - calculated CRC: $%08lx\r\n",crc32,ad_rescrc);
+			}
+		}
+
+	if (cp!=NULL)
+		{
+		if (crc32 != ad_rescrc)
+			{
+			sprintf(name,"%s(crc=$%08lx)",attname,ad_rescrc);
+			strcpy(attname,name);
+			eprint("Corrupt yEnc binary - CRC mismatch (%s%s)\r\n",attname,attext);
+			return(0);
+			}
+		}
+
+	if (y_part==0)  // Single message
+		{
+		if ((y_part==0) & (decolen != y_size))
+			{
+			// eprint("Y-Decoder: Size mismatch - file corrupt.\r\n");
+
+			sprintf(name,"%s(len=%ld)",attname,decolen);
+			strcpy(attname,name);
+			eprint("Corrupt yEnc binary - size mismatch (%s%s)\r\n",attname,attext);
+
+			return(0);
+			}
+
+		ad_reslen=decolen;
+		ad_rescrc=crc_val ^ 0xFFFFFFFFl;
+
+		if (aDsp) print("yDecoder: Job done. %ld bytes written. CRC: $%08lx \r\n",decolen,ad_rescrc);
+		return(0);
+		}
+
+	// Multipart message
+
+	if ((y_part>0) & (decolen != (y_end-y_begin+1)))
+		{
+		eprint("yDecoder: Part size mismatch - file corrupt.\r\n");
+		return(6);
+		}
+
+	sumlen=sumlen+decolen;
+	if (sumlen == y_size)  // Completely decoded
+		{
+		if (aDsp) print("yDecoder: Multpart Job done. %ld bytes written\r\n",sumlen);
+
+		ad_reslen=sumlen;
+		ad_rescrc=crc_val ^ 0xFFFFFFFFl;
+
+		return(0);
+		}
+	if (sumlen>y_size)
+		{
+		eprint("yDecoder: More data than expected. File corrupt.\r\n");
+		return(7);
+		}
+
+	// Now scan the file for the rest !
+
+	partnr++;  // Now scan for this part number
+
+ploop:
+
+	cp=ad_fgetscr((char*) srcbuf,4097,fIn);  // fgets especially with ad_length
+	if (cp==NULL)
+		{
+		eprint("Unexpected eof in multipart yEncoded file\r\n");
+		return(1);
+		}
+	if (strncmp((char*) srcbuf,"=ybegin ",8))
+		{
+		if (aDsp) print("yEnc skipped: %s\r\n",srcbuf);
+		goto ploop;
+		}
+	cp=strstr((char*)srcbuf," part=");
+	if (cp==NULL)
+		{
+		eprint("No part in next ybegin found - in multipart yEncoded file\r\n");
+		return(1);
+		}
+	if (atoi(cp+6) != partnr)
+		{
+		eprint("Unexpected part (%d) found in yEncoded message. Expected was (%d)\r\n",atoi(cp+6),partnr);
+		return(1);
+		}
+	if (aDsp) print("Found part # %d\r\n",partnr);
+
+	// Additional plausi possible for name & size
+
+	goto part_start;
+	}
+
+
+
+
+// ......  A part from the decoder which scans messages for attachments .......
+
+is_yEncoded:
+	if (strncmp(line,"=ybegin ",8)==0)
+		{
+		cp=strstr(line,"name=");
+		if (cp==NULL) goto loop;  // Error - filename not found
+		strcpy(attname,cp+5);  // Store the filename
+		*cp=0; // throw away the filename
+
+		cp=strstr(line,"size=");
+		if (cp==NULL) goto loop;  // Error - size not found
+		y_size=atol(cp+5);
+
+		cp=strstr(line,"line=");
+		if (cp==NULL) goto loop;  // Error - linelength not found
+		y_line=atol(cp+5);
+
+		y_part=0;
+		cp=strstr(line,"part=");   // Check if this is a multipart message
+		if (cp)
+			{
+			y_part=atol(cp+5);
+			if (y_part != 1) goto loop;   // MUST start with the first part for proper decoding
+			}
+
+		// Now we can decode the file -- let's assume that this is a valid file
+
+		attext[0]=0;
+		cp=strrchr(attname,'.');
+		if (cp)
+			{
+			strcpy(attext,cp); *cp=0;
+			}
+
+		sprintf(filename,"%s\\decode.tmp",datadir);
+		if (aDsp) print("DesFileName = (%s%s)\r\n",attname,attext);
+
+		// 27-03-2001: Set the filename jsut in case we cannot decode it
+		sprintf(ad_desname,"%s\\%s%s",ad_despath,attname,attext);
+
+		// filelen=0;
+
+		if (ad_crcmode) CrcInit();
+		if (ad_cleanmode)
+			{
+			ad_cleanmode=2;  // This will prevent us from writing more to the clean buffer
+			if (aDsp) print("Begin cleaning...\r\n");
+			CrcInit();
+			}
+
+		fOut=copen(filename,"wb");
+		if (fOut==NULL)  // Possibly already exists
+			{
+			eprint("AutoDecode: Cannot create DesFile (%s)\r\n",filename);
+			cclose(fIn);
+			rb_picerr++;
+			return(-1);
+			// goto loop;
+			}
+		// Now decode that file !
+
+		id=yDecode(fOut,fIn,y_line,y_size,y_part);
+		if (id)
+			{
+			eprint("yDecode failed (reason: %d)\r\n",id);
+			goto abortus;
+			}
+		print("yDecode successful\r\n");
+		cclose(fOut);
+
+		filelen=ad_reslen;
+
+		goto file_ok;
+		};
+
+

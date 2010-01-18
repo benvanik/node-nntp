@@ -3,20 +3,8 @@ var nntp = require("../lib/node-nntp");
 var exconfig = require("./example-config");
 
 var client = new nntp.Client();
-client.connect(exconfig.host, exconfig.port).addCallback(function() {
-    // if username provided, attempt to authenticate
-    if (exconfig.username) {
-        client.authenticate(
-            exconfig.username, exconfig.password
-        ).addCallback(function(responseCode, responseLine) {
-            onReady();
-        }).addErrback(function() {
-            sys.puts("failed to authenticate");
-            client.quit().wait();
-        });
-    } else {
-        onReady();
-    }
+client.connect(exconfig.host, exconfig.port, exconfig.username, exconfig.password).addCallback(function() {
+    onReady();
 }).addErrback(function() {
     sys.puts("failed to connect");
 });

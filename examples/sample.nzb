@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<!DOCTYPE nzb PUBLIC "-//newzBin//DTD NZB 1.0//EN" "http://www.newzbin.com/DTD/nzb/nzb-1.0.dtd">
+<nzb xmlns="http://www.newzbin.com/DTD/2003/nzb">
+<file subject="How to build your own Submarine.[1/4] - &#34;Build Your Own Submarine.sfv&#34; yEnc (1/1)" date="1260738705" poster="Duik@boot.nl (Submariner)">
+	<groups>
+		<group>alt.binaries.e-book.technical</group>
+	</groups>
+	<segments>
+			<segment bytes="1133" number="1">part1of1.NPdyXdARfo2bBkDg8Bda@powerpost2000AA.local</segment>
+	</segments>
+</file>
+<file subject="How to build your own Submarine.[4/4] - &#34;Build Your Own Submarine.pdf&#34; yEnc (1/6)" date="1260738707" poster="Duik@boot.nl (Submariner)">
+	<groups>
+		<group>alt.binaries.e-book.technical</group>
+	</groups>
+	<segments>
+			<segment bytes="258428" number="1">part1of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+			<segment bytes="258706" number="2">part2of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+			<segment bytes="258649" number="3">part3of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+			<segment bytes="258674" number="4">part4of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+			<segment bytes="258839" number="5">part5of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+			<segment bytes="191889" number="6">part6of6.mqk$RuO7vrhvogt$uLxY@powerpost2000AA.local</segment>
+	</segments>
+</file>
+<file subject="How to build your own Submarine.[0/4] - &#34;Build Your Own Submarine.nzb&#34; yEnc (1/1)" date="1260738705" poster="Duik@boot.nl (Submariner)">
+	<groups>
+		<group>alt.binaries.e-book.technical</group>
+	</groups>
+	<segments>
+			<segment bytes="3291" number="1">4b255891$0$28874$2d805a3e@uploadreader.eweka.nl</segment>
+	</segments>
+</file>
+<file subject="How to build your own Submarine.[3/4] - &#34;Build Your Own Submarine.par2&#34; yEnc (1/1)" date="1260738705" poster="Duik@boot.nl (Submariner)">
+	<groups>
+		<group>alt.binaries.e-book.technical</group>
+	</groups>
+	<segments>
+			<segment bytes="1555" number="1">part1of1.Re6rxinPnLTKy2zlf3OJ@powerpost2000AA.local</segment>
+	</segments>
+</file>
+<file subject="How to build your own Submarine.[2/4] - &#34;Build Your Own Submarine.par&#34; yEnc (1/1)" date="1260738705" poster="Duik@boot.nl (Submariner)">
+	<groups>
+		<group>alt.binaries.e-book.technical</group>
+	</groups>
+	<segments>
+			<segment bytes="1157" number="1">part1of1.4mcejfZHMv&amp;xQMVEVxI0@powerpost2000AA.local</segment>
+	</segments>
+</file>
+
+	<!-- Generated at http://www.newzbin.com - 1263780227 / 155263 -->
+
+</nzb>

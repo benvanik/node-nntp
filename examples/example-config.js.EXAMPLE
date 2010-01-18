@@ -1,0 +1,11 @@
+// hostname of nntp server - like 'news.giganews.com'
+exports.host = "MY.NEWSSERVER.COM";
+
+// port to access server on - either omit (for default of 119) or specify a non-SSL port
+exports.port = 119;
+
+// username to use when authenticating if authentication is required
+exports.username = "USERNAME";
+
+// password to use when authenticating if required
+exports.password = "PASSWORD";

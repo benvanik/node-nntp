@@ -1,6 +1,6 @@
 var sys = require("sys");
-var nntp = require("../lib/node-nntp")
-var exconfig = require("./example-config")
+var nntp = require("../lib/node-nntp");
+var exconfig = require("./example-config");
 
 var client = new nntp.Client();
 client.connect(exconfig.host, exconfig.port).addCallback(function() {
